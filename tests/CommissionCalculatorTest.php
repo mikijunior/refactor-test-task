@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use App\CommissionCalculator;
 use App\DTO\Transaction;
 use App\Exceptions\BinDataRetrievalException;
 use App\Exceptions\InvalidTransactionFormatException;
 use App\Providers\BinListProvider;
 use App\Providers\ExchangeRateProvider;
+use App\Services\CommissionCalculator;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
@@ -21,6 +21,9 @@ use PHPUnit\Framework\TestCase;
 
 class CommissionCalculatorTest extends TestCase
 {
+    /**
+     * @throws InvalidTransactionFormatException
+     */
     public function testCalculateCommissionForEu()
     {
         $binMock = new MockHandler([

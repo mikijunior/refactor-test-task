@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App;
+namespace App\Services;
 
 use App\Contracts\BinProviderInterface;
 use App\Contracts\ExchangeRateProviderInterface;
@@ -10,8 +10,8 @@ use App\DTO\Transaction;
 
 class CommissionCalculator
 {
-    private $binProvider;
-    private $exchangeRateProvider;
+    private BinProviderInterface $binProvider;
+    private ExchangeRateProviderInterface $exchangeRateProvider;
 
     public function __construct(BinProviderInterface $binProvider, ExchangeRateProviderInterface $exchangeRateProvider)
     {
