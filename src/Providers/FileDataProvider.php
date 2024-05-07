@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Contracts\DataProviderInterface;
 use App\Exceptions\FileNotFoundException;
+use Iterator;
 use JsonException;
 use RuntimeException;
 
@@ -25,7 +26,7 @@ class FileDataProvider implements DataProviderInterface
         $this->filename = $filename;
     }
 
-    public function getData(): \Iterator
+    public function getData(): Iterator
     {
         if (($file = fopen($this->filename, 'r')) === false) {
             throw new RuntimeException("Unable to open file: {$this->filename}");
