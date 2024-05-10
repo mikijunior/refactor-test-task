@@ -1,12 +1,12 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Providers;
 
 use App\Contracts\DataProviderInterface;
+use App\DTO\Transaction;
 use App\Exceptions\FileNotFoundException;
-use Iterator;
+use App\Exceptions\InvalidTransactionFormatException;
+use Generator;
 use JsonException;
 use RuntimeException;
 
@@ -26,7 +26,7 @@ class FileDataProvider implements DataProviderInterface
         $this->filename = $filename;
     }
 
-    public function getData(): Iterator
+    public function getData(): Generator
     {
         if (($file = fopen($this->filename, 'r')) === false) {
             throw new RuntimeException("Unable to open file: {$this->filename}");
@@ -34,7 +34,7 @@ class FileDataProvider implements DataProviderInterface
 
         while (($line = fgets($file)) !== false) {
             try {
-                yield json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+                yield new Transaction(json_decode($line, true, 512, JSON_THROW_ON_ERROR));
             } catch (JsonException $e) {
                 throw new RuntimeException("Invalid JSON format in file: {$this->filename}");
             }

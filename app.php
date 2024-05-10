@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-require 'vendor/autoload.php';
+require_once __DIR__ . '/bootstrap.php';
 
-use App\Exceptions\FileNotFoundException;
 use App\Processors\TransactionProcessor;
-use App\Providers\BinListProvider;
-use App\Providers\ExchangeRateProvider;
 use App\Providers\FileDataProvider;
+use App\Exceptions\FileNotFoundException;
 use App\Services\CommissionCalculator;
-use GuzzleHttp\Client;
+
+$container = include __DIR__ . '/bootstrap.php';
 
 if ($argc != 2) {
     echo "Usage: php app.php <input_file>" . PHP_EOL;
@@ -21,13 +20,13 @@ $inputFile = $argv[1];
 
 try {
     $dataProvider = new FileDataProvider($inputFile);
-    $client = new Client();
-    $calculator = new CommissionCalculator(new BinListProvider($client), new ExchangeRateProvider($client));
-    $processor = new TransactionProcessor($calculator);
 
-    foreach ($processor->process($dataProvider) as $result) {
-        echo $result . PHP_EOL;
-    }
+    $processor = new TransactionProcessor(
+        $container->get(CommissionCalculator::class),
+        $dataProvider
+    );
+
+    $processor->run();
 
 } catch (FileNotFoundException $e) {
     echo "File Error: " . $e->getMessage() . PHP_EOL;

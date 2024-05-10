@@ -10,14 +10,17 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use JsonException;
+use Psr\Http\Message\ResponseInterface;
 
 class BinListProvider implements BinProviderInterface
 {
-    private $client;
+    private Client $client;
+    private string $url;
 
-    public function __construct(Client $client)
+    public function __construct(Client $client, string $url)
     {
         $this->client = $client;
+        $this->url = $url;
     }
 
     /**
@@ -30,14 +33,18 @@ class BinListProvider implements BinProviderInterface
     public function getCountryCode(string $bin): string
     {
         try {
-            $response = $this->client->get('https://lookup.binlist.net/' . $bin);
-            $data = json_decode((string)$response->getBody(), false, 512, JSON_THROW_ON_ERROR);
-
-            return $data->country->alpha2 ?? '';
+            $response = $this->client->get($this->url . $bin);
+            return $this->getResponseCountryCode($response);
         } catch (RequestException | GuzzleException $e) {
             throw BinDataRetrievalException::retrievalError();
         } catch (JsonException $e) {
             throw BinDataRetrievalException::invalidJsonError();
         }
+    }
+
+    private function getResponseCountryCode(ResponseInterface $response): string
+    {
+        $data = json_decode((string)$response->getBody(), false, 512, JSON_THROW_ON_ERROR);
+        return $data->country->alpha2 ?? '';
     }
 }

@@ -4,54 +4,110 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use App\Exceptions\FileNotFoundException;
-use App\Processors\TransactionProcessor;
-use App\Providers\BinListProvider;
-use App\Providers\ExchangeRateProvider;
-use App\Providers\FileDataProvider;
-use App\Services\CommissionCalculator;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use Exception;
 use PHPUnit\Framework\TestCase;
+use App\Processors\TransactionProcessor;
+use App\Services\CommissionCalculator;
+use App\DTO\Transaction;
+use App\Providers\FileDataProvider;
+use Generator;
 
 class TransactionProcessorTest extends TestCase
 {
-    /**
-     * @throws FileNotFoundException
-     */
-    public function testProcess()
+    public function testProcessesMultipleTransactions(): void
     {
-        $binMock = new MockHandler([
-            new Response(200, [], '{"country": {"alpha2": "LT"}}'),
-            new Response(200, [], '{"country": {"alpha2": "US"}}'),
-        ]);
+        $mockCalculator = $this->createMock(CommissionCalculator::class);
+        $mockCalculator->method('calculateCommission')
+            ->willReturnOnConsecutiveCalls('0.05', '0.10', '0.15');
 
-        $exchangeMock = new MockHandler([
-            new Response(200, [], '{"rates": {"USD": 1.2}}'),
-            new Response(200, [], '{"rates": {"EUR": 1, "USD": 1.2}}'),
-        ]);
+        $transactions = [
+            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
+            new Transaction(['bin' => '234567', 'amount' => 200.0, 'currency' => 'USD']),
+            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+        ];
 
-        $binProvider = new BinListProvider(new Client(['handler' => HandlerStack::create($binMock)]));
-        $exchangeProvider = new ExchangeRateProvider(new Client(['handler' => HandlerStack::create($exchangeMock)]));
-        $calculator = new CommissionCalculator($binProvider, $exchangeProvider);
-        $processor = new TransactionProcessor($calculator);
+        $mockDataProvider = $this->createMock(FileDataProvider::class);
+        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+            foreach ($transactions as $transaction) {
+                yield $transaction;
+            }
+        })());
 
-        $filename = 'tests/test_data.txt';
-        file_put_contents(
-            $filename,
-            '{"bin":"45717360","amount":"100.00","currency":"EUR"}' . PHP_EOL .
-            '{"bin":"516793","amount":"50.00","currency":"USD"}' . PHP_EOL
-        );
-        $provider = new FileDataProvider($filename);
+        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
 
-        $results = iterator_to_array($processor->process($provider));
+        ob_start();
+        $processor->run();
+        $output = ob_get_clean();
 
-        $this->assertCount(2, $results);
-        $this->assertEquals(1.00, $results[0]);
-        $this->assertEquals(0.84, $results[1]);
+        $expectedOutput = implode("\n", array_map(function ($value) {
+                return number_format($value, 2);
+        }, [0.05, 0.10, 0.15])) . "\n";
 
-        unlink($filename);
+        $this->assertEquals($expectedOutput, $output);
+    }
+
+    public function testErrorHandlingInProcessing(): void
+    {
+        $mockCalculator = $this->createMock(CommissionCalculator::class);
+        $mockCalculator->method('calculateCommission')
+            ->will($this->onConsecutiveCalls('0.05', $this->throwException(new Exception("Invalid data")), '0.15'));
+
+        $transactions = [
+            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
+            new Transaction(['bin' => 'invalid', 'amount' => 200.0, 'currency' => 'USD']),
+            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+        ];
+
+        $mockDataProvider = $this->createMock(FileDataProvider::class);
+        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+            foreach ($transactions as $transaction) {
+                yield $transaction;
+            }
+        })());
+
+        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
+
+        ob_start();
+        $processor->run();
+        $output = ob_get_clean();
+
+        $expectedOutput = "0.05\nError processing transaction: Invalid data\n0.15\n";
+        $this->assertEquals($expectedOutput, $output);
+    }
+
+    public function testSkipsMalformedDataGracefully(): void
+    {
+        $mockCalculator = $this->createMock(CommissionCalculator::class);
+        $mockCalculator->method('calculateCommission')
+            ->willReturnCallback(function ($transaction) {
+                if ($transaction instanceof Transaction) {
+                    return '0.05';
+                }
+                throw new TypeError('Expected instance of Transaction');
+            });
+
+        $transactions = [
+            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
+            [],
+            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+        ];
+
+        $mockDataProvider = $this->createMock(FileDataProvider::class);
+        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+            foreach ($transactions as $transaction) {
+                if ($transaction instanceof Transaction) {
+                    yield $transaction;
+                }
+            }
+        })());
+
+        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
+
+        ob_start();
+        $processor->run();
+        $output = ob_get_clean();
+
+        $expectedOutput = "0.05\n0.05\n";
+        $this->assertEquals($expectedOutput, $output);
     }
 }

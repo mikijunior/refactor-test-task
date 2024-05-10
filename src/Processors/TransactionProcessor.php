@@ -5,35 +5,29 @@ declare(strict_types=1);
 namespace App\Processors;
 
 use App\Contracts\DataProviderInterface;
-use App\DTO\Transaction;
 use App\Services\CommissionCalculator;
-use Exception;
 use Generator;
+use Exception;
 
 class TransactionProcessor
 {
     private CommissionCalculator $calculator;
+    private DataProviderInterface $dataProvider;
 
-    public function __construct(CommissionCalculator $calculator)
+    public function __construct(CommissionCalculator $calculator, DataProviderInterface $dataProvider)
     {
         $this->calculator = $calculator;
+        $this->dataProvider = $dataProvider;
     }
 
-    /**
-     * Processes all transactions from the data provider.
-     *
-     * @param DataProviderInterface $provider
-     * @return Generator
-     */
-    public function process(DataProviderInterface $provider): Generator
+    public function run()
     {
-        foreach ($provider->getData() as $transactionData) {
+        foreach ($this->dataProvider->getData() as $transaction) {
             try {
-                $transaction = new Transaction($transactionData);
-                $commission = $this->calculator->calculateCommission($transaction);
-                yield $commission;
+                $result = $this->calculator->calculateCommission($transaction);
+                echo $result . PHP_EOL;
             } catch (Exception $e) {
-                yield "Error: " . $e->getMessage();
+                echo "Error processing transaction: " . $e->getMessage() . PHP_EOL;
             }
         }
     }

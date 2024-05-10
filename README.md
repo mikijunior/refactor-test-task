@@ -14,8 +14,12 @@ This project provides a solution for calculating commissions for transactions ba
     ```bash
     git clone <repository_url>
     ```
+2.  **Copy the Example Environment File**:
 
-2. **Install dependencies**:
+    ```bash
+    cp .env.example .env
+    ```
+3. **Install dependencies**:
 
     ```bash
     composer install

@@ -1,17 +1,14 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Contracts;
 
-use Iterator;
+use Generator;
+use App\DTO\Transaction;
 
 interface DataProviderInterface
 {
     /**
-     * Get the data for processing.
-     *
-     * @return Iterator
+     * @return Generator|Transaction[]
      */
-    public function getData(): Iterator;
+    public function getData(): Generator;
 }
