@@ -11,33 +11,32 @@ use RuntimeException;
 
 class CommissionCalculator
 {
-    private BinProviderInterface $binProvider;
     private ExchangeRateProviderInterface $exchangeRateProvider;
     private CommissionRateService $rateSpecification;
+    private int $precision;
 
     public function __construct(
-        BinProviderInterface $binProvider,
         ExchangeRateProviderInterface $exchangeRateProvider,
-        CommissionRateService $rateSpecification
+        CommissionRateService $rateSpecification,
+        int $precision = 2
     ) {
-        $this->binProvider = $binProvider;
         $this->exchangeRateProvider = $exchangeRateProvider;
         $this->rateSpecification = $rateSpecification;
+        $this->precision = $precision;
     }
 
     public function calculateCommission(Transaction $transaction): string
     {
-        $countryCode = $this->binProvider->getCountryCode($transaction->getBin());
         $rate = $this->exchangeRateProvider->getRate($transaction->getCurrency());
 
-        if ($rate == 0) {
+        if (bccomp($rate, '0.00000000', 8) === 0) {
             throw new RuntimeException("Exchange rate cannot be zero");
         }
 
-        $amntFixed = bcdiv((string)$transaction->getAmount(), (string)$rate, 2);
-        $commissionRate = $this->rateSpecification->getCommissionRate($countryCode);
-        $commission = bcmul($amntFixed, $commissionRate, 2);
+        $convertedAmount = bcdiv($transaction->getAmount(), $rate, $this->precision);
+        $commissionRate = $this->rateSpecification->getCommissionRate($transaction->getBin());
+        $commission = bcmul($convertedAmount, $commissionRate, $this->precision);
 
-        return bcdiv((string)ceil((float)bcmul($commission, '100')), '100', 2);
+        return bcdiv((string)ceil((float)bcmul($commission, '100')), '100', $this->precision);
     }
 }

@@ -41,10 +41,24 @@ class FileDataProviderTest extends TestCase
 
         $this->assertCount(3, $results);
         $this->assertInstanceOf(Transaction::class, $results[0]);
-        $this->assertEquals(new Transaction(['bin' => '123456', 'amount' => 100.00, 'currency' => 'EUR']), $results[0]);
+        $this->assertEquals(
+            new Transaction([
+                'bin' => '123456',
+                'amount' => '100.00',
+                'currency' => 'EUR',
+            ]),
+            $results[0]
+        );
         $this->assertNotNull($results[1]);
         $this->assertInstanceOf(Transaction::class, $results[2]);
-        $this->assertEquals(new Transaction(['bin' => '234567', 'amount' => 200.00, 'currency' => 'USD']), $results[2]);
+        $this->assertEquals(
+            new Transaction([
+                'bin' => '234567',
+                'amount' => '200.00',
+                'currency' => 'USD',
+            ]),
+            $results[2]
+        );
 
         fclose($tempFile);
     }

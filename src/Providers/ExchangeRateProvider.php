@@ -27,7 +27,7 @@ class ExchangeRateProvider implements ExchangeRateProviderInterface
     /**
      * @throws ExchangeRateRetrievalException
      */
-    public function getRate(string $currency): float
+    public function getRate(string $currency): string
     {
         try {
             $response = $this->client->get($this->url);
@@ -40,9 +40,9 @@ class ExchangeRateProvider implements ExchangeRateProviderInterface
         }
     }
 
-    private function getResponseRate(ResponseInterface $response, string $currency): float
+    private function getResponseRate(ResponseInterface $response, string $currency): string
     {
         $data = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        return $data['rates'][$currency] ?? 1.0;
+        return (string) ($data['rates'][$currency] ?? 1.0);
     }
 }

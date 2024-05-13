@@ -6,5 +6,5 @@ namespace App\Contracts;
 
 interface ExchangeRateProviderInterface
 {
-    public function getRate(string $currency): float;
+    public function getRate(string $currency): string;
 }

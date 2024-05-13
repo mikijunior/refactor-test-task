@@ -6,7 +6,7 @@ use Dotenv\Dotenv;
 use GuzzleHttp\Client;
 use App\Config\Configuration;
 use App\Services\CommissionCalculator;
-use App\Services\CountryService;
+use App\Services\EuCountriesSpecification;
 use App\Services\CommissionRateService;
 use App\Providers\BinListProvider;
 use App\Providers\ExchangeRateProvider;
@@ -29,7 +29,7 @@ $containerBuilder->addDefinitions([
         ]);
     },
     Client::class => DI\create(Client::class),
-    CountryService::class => DI\create(CountryService::class),
+    EuCountriesSpecification::class => DI\create(EuCountriesSpecification::class),
 
     BinListProvider::class => function (ContainerInterface $container) {
         $configuration = $container->get(Configuration::class);
@@ -48,11 +48,10 @@ $containerBuilder->addDefinitions([
     },
 
     CommissionRateService::class => DI\create(CommissionRateService::class)->constructor(
-        DI\get(CountryService::class)
+        DI\get(BinListProvider::class),
     ),
 
     CommissionCalculator::class => DI\create(CommissionCalculator::class)->constructor(
-        DI\get(BinListProvider::class),
         DI\get(ExchangeRateProvider::class),
         DI\get(CommissionRateService::class)
     ),

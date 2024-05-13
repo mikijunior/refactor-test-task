@@ -26,7 +26,7 @@ class Transaction
         $this->validateTransaction($transaction);
 
         $this->bin = $transaction['bin'];
-        $this->amount = (float)$transaction['amount'];
+        $this->amount = (string)$transaction['amount'];
         $this->currency = $transaction['currency'];
     }
 
@@ -35,7 +35,7 @@ class Transaction
         return $this->bin;
     }
 
-    public function getAmount(): float
+    public function getAmount(): string
     {
         return $this->amount;
     }

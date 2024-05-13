@@ -4,20 +4,40 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\BinProviderInterface;
+use App\Contracts\SpecificationInterface;
+
 class CommissionRateService
 {
-    private CountryService $euCountryService;
+    private BinProviderInterface $binProvider;
+    private string $defaultCoefficient;
+    /**
+     * @var SpecificationInterface[]
+     */
+    private array $specifications = [];
 
-    public function __construct(CountryService $euCountryService)
+    public function __construct(BinProviderInterface $binProvider, string $defaultCommissionRate = '0.02')
     {
-        $this->euCountryService = $euCountryService;
+        $this->binProvider = $binProvider;
+        $this->defaultCoefficient = $defaultCommissionRate;
+        $this->addSpecification(new EuCountriesSpecification());
     }
 
-    public function getCommissionRate(string $countryCode): string
+    public function addSpecification(SpecificationInterface $specification): void
     {
-        if ($this->euCountryService->isEuCountry($countryCode)) {
-            return '0.01';
+        $this->specifications[] = $specification;
+    }
+
+    public function getCommissionRate(string $bin): string
+    {
+        $countryCode = $this->binProvider->getCountryCode($bin);
+
+        foreach ($this->specifications as $specification) {
+            if ($specification->supports($countryCode)) {
+                return $specification->getCoefficient();
+            }
         }
-        return '0.02';
+
+        return $this->defaultCoefficient;
     }
 }
