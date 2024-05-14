@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Contracts\BinProviderInterface;
 use App\Contracts\SpecificationInterface;
 
-class CommissionRateService
+class CommissionRate
 {
     private BinProviderInterface $binProvider;
     private string $defaultCoefficient;
@@ -20,7 +20,6 @@ class CommissionRateService
     {
         $this->binProvider = $binProvider;
         $this->defaultCoefficient = $defaultCommissionRate;
-        $this->addSpecification(new EuCountriesSpecification());
     }
 
     public function addSpecification(SpecificationInterface $specification): void

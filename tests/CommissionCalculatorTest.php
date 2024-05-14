@@ -4,64 +4,77 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use PHPUnit\Framework\TestCase;
-use App\Services\CommissionCalculator;
-use App\Services\CommissionRateService;
-use App\Services\EuCountriesSpecification;
-use App\Contracts\ExchangeRateProviderInterface;
 use App\Contracts\BinProviderInterface;
+use App\Contracts\ExchangeRateProviderInterface;
 use App\DTO\Transaction;
+use App\Services\CommissionCalculator;
+use App\Services\CommissionRate;
+use App\Services\EuCountriesSpecification;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 class CommissionCalculatorTest extends TestCase
 {
-    public function testCalculatesCommissionForNonEUTransactions()
+    private $mockExchangeProvider;
+    private $mockBinProvider;
+    private CommissionCalculator $calculator;
+
+    protected function setUp(): void
     {
-        $mockExchangeProvider = $this->createMock(ExchangeRateProviderInterface::class);
-        $mockExchangeProvider->method('getRate')->willReturn('1.0');
+        parent::setUp();
 
-        $mockBinProvider = $this->createMock(BinProviderInterface::class);
-        $mockBinProvider->method('getCountryCode')->willReturn('US');
+        $this->mockExchangeProvider = $this->createMock(ExchangeRateProviderInterface::class);
+        $this->mockBinProvider = $this->createMock(BinProviderInterface::class);
 
-        $rateService = new CommissionRateService($mockBinProvider, '0.02');
-        $calculator = new CommissionCalculator($mockExchangeProvider, $rateService);
+        $rateService = new CommissionRate($this->mockBinProvider, '0.02');
+        $rateService->addSpecification(new EuCountriesSpecification());
+
+        $this->calculator = new CommissionCalculator($this->mockExchangeProvider, $rateService, 2);
+    }
+
+    public function testCalculatesCommissionForNonEUTransactions(): void
+    {
+        $this->mockExchangeProvider->method('getRate')->willReturn('1.0');
+        $this->mockBinProvider->method('getCountryCode')->willReturn('US');
 
         $transaction = new Transaction(['bin' => '234567', 'amount' => '100.0', 'currency' => 'USD']);
-        $commission = $calculator->calculateCommission($transaction);
+        $commission = $this->calculator->calculateCommission($transaction);
 
         $this->assertEquals('2.00', $commission);
     }
 
-    public function testCalculatesZeroAmountTransaction()
+    public function testCalculatesZeroAmountTransaction(): void
     {
-        $mockExchangeProvider = $this->createMock(ExchangeRateProviderInterface::class);
-        $mockExchangeProvider->method('getRate')->willReturn('1.0');
-
-        $mockBinProvider = $this->createMock(BinProviderInterface::class);
-        $mockBinProvider->method('getCountryCode')->willReturn('FR');
-
-        $rateService = new CommissionRateService($mockBinProvider, '0.01');
-        $calculator = new CommissionCalculator($mockExchangeProvider, $rateService);
+        $this->mockExchangeProvider->method('getRate')->willReturn('1.0');
+        $this->mockBinProvider->method('getCountryCode')->willReturn('FR');
 
         $transaction = new Transaction(['bin' => '345678', 'amount' => '0.0', 'currency' => 'EUR']);
-        $commission = $calculator->calculateCommission($transaction);
+        $commission = $this->calculator->calculateCommission($transaction);
 
         $this->assertEquals('0.00', $commission);
     }
 
-    public function testHandlesUnusualExchangeRates()
+    public function testHandlesUnusualExchangeRates(): void
     {
-        $mockExchangeProvider = $this->createMock(ExchangeRateProviderInterface::class);
-        $mockExchangeProvider->method('getRate')->willReturn('0.5');
-
-        $mockBinProvider = $this->createMock(BinProviderInterface::class);
-        $mockBinProvider->method('getCountryCode')->willReturn('FR');
-
-        $rateService = new CommissionRateService($mockBinProvider, '0.01');
-        $calculator = new CommissionCalculator($mockExchangeProvider, $rateService);
+        $this->mockExchangeProvider->method('getRate')->willReturn('0.5');
+        $this->mockBinProvider->method('getCountryCode')->willReturn('FR');
 
         $transaction = new Transaction(['bin' => '456789', 'amount' => '200.0', 'currency' => 'Foreign']);
-        $commission = $calculator->calculateCommission($transaction);
+        $commission = $this->calculator->calculateCommission($transaction);
 
         $this->assertEquals('4.00', $commission);
+    }
+
+    public function testHandleZeroExchangeRate(): void
+    {
+        $this->mockExchangeProvider->method('getRate')->willReturn('0.00000000');
+        $this->mockBinProvider->method('getCountryCode')->willReturn('US');
+
+        $transaction = new Transaction(['bin' => '123456', 'amount' => '100.0', 'currency' => 'USD']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("Exchange rate cannot be zero");
+
+        $this->calculator->calculateCommission($transaction);
     }
 }

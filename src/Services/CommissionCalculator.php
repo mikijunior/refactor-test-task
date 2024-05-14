@@ -12,13 +12,13 @@ use RuntimeException;
 class CommissionCalculator
 {
     private ExchangeRateProviderInterface $exchangeRateProvider;
-    private CommissionRateService $rateSpecification;
+    private CommissionRate $rateSpecification;
     private int $precision;
 
     public function __construct(
         ExchangeRateProviderInterface $exchangeRateProvider,
-        CommissionRateService $rateSpecification,
-        int $precision = 2
+        CommissionRate $rateSpecification,
+        int $precision
     ) {
         $this->exchangeRateProvider = $exchangeRateProvider;
         $this->rateSpecification = $rateSpecification;

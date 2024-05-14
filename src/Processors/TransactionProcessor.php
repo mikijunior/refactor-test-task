@@ -6,8 +6,8 @@ namespace App\Processors;
 
 use App\Contracts\DataProviderInterface;
 use App\Services\CommissionCalculator;
-use Generator;
 use Exception;
+use Generator;
 
 class TransactionProcessor
 {

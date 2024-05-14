@@ -1,17 +1,17 @@
 <?php
 
+use App\Config\Configuration;
 use App\Contracts\DataProviderInterface;
+use App\Processors\TransactionProcessor;
+use App\Providers\BinListProvider;
+use App\Providers\ExchangeRateProvider;
+use App\Providers\FileDataProvider;
+use App\Services\CommissionCalculator;
+use App\Services\CommissionRate;
+use App\Services\EuCountriesSpecification;
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use GuzzleHttp\Client;
-use App\Config\Configuration;
-use App\Services\CommissionCalculator;
-use App\Services\EuCountriesSpecification;
-use App\Services\CommissionRateService;
-use App\Providers\BinListProvider;
-use App\Providers\ExchangeRateProvider;
-use App\Processors\TransactionProcessor;
-use App\Providers\FileDataProvider;
 use Psr\Container\ContainerInterface;
 
 require 'vendor/autoload.php';
@@ -22,7 +22,7 @@ $dotenv->load();
 $containerBuilder = new ContainerBuilder();
 
 $containerBuilder->addDefinitions([
-    Configuration::class => function() {
+    Configuration::class => function () {
         return new Configuration([
             'binListUrl' => $_ENV['API_BINLIST_URL'],
             'exchangeRateUrl' => $_ENV['API_EXCHANGE_RATE_URL'],
@@ -30,39 +30,37 @@ $containerBuilder->addDefinitions([
     },
     Client::class => DI\create(Client::class),
     EuCountriesSpecification::class => DI\create(EuCountriesSpecification::class),
-
     BinListProvider::class => function (ContainerInterface $container) {
-        $configuration = $container->get(Configuration::class);
         return new BinListProvider(
             $container->get(Client::class),
-            $configuration->get('binListUrl')
+            $container->get(Configuration::class)->get('binListUrl')
         );
     },
-
     ExchangeRateProvider::class => function (ContainerInterface $container) {
-        $configuration = $container->get(Configuration::class);
         return new ExchangeRateProvider(
             $container->get(Client::class),
-            $configuration->get('exchangeRateUrl')
+            $container->get(Configuration::class)->get('exchangeRateUrl')
         );
     },
-
-    CommissionRateService::class => DI\create(CommissionRateService::class)->constructor(
-        DI\get(BinListProvider::class),
-    ),
-
-    CommissionCalculator::class => DI\create(CommissionCalculator::class)->constructor(
-        DI\get(ExchangeRateProvider::class),
-        DI\get(CommissionRateService::class)
-    ),
-
-    TransactionProcessor::class => DI\create(TransactionProcessor::class)->constructor(
-        DI\get(CommissionCalculator::class),
-        DI\get(FileDataProvider::class)
-    ),
-
+    CommissionRate::class => function (ContainerInterface $container) {
+        return new CommissionRate(
+            $container->get(BinListProvider::class)
+        );
+    },
+    CommissionCalculator::class => function (ContainerInterface $container) {
+        return new CommissionCalculator(
+            $container->get(ExchangeRateProvider::class),
+            $container->get(CommissionRate::class),
+            2
+        );
+    },
+    TransactionProcessor::class => function (ContainerInterface $container) {
+        return new TransactionProcessor(
+            $container->get(CommissionCalculator::class),
+            $container->get(FileDataProvider::class)
+        );
+    },
     FileDataProvider::class => DI\create(FileDataProvider::class),
-
     DataProviderInterface::class => DI\get(FileDataProvider::class),
 ]);
 

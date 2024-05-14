@@ -4,20 +4,34 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use Exception;
-use PHPUnit\Framework\TestCase;
-use App\Processors\TransactionProcessor;
-use App\Services\CommissionCalculator;
 use App\DTO\Transaction;
+use App\Processors\TransactionProcessor;
 use App\Providers\FileDataProvider;
+use App\Services\CommissionCalculator;
+use Exception;
 use Generator;
+use PHPUnit\Framework\TestCase;
+use TypeError;
 
 class TransactionProcessorTest extends TestCase
 {
+    private $mockCalculator;
+    private $mockDataProvider;
+    private TransactionProcessor $processor;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->mockCalculator = $this->createMock(CommissionCalculator::class);
+        $this->mockDataProvider = $this->createMock(FileDataProvider::class);
+
+        $this->processor = new TransactionProcessor($this->mockCalculator, $this->mockDataProvider);
+    }
+
     public function testProcessesMultipleTransactions(): void
     {
-        $mockCalculator = $this->createMock(CommissionCalculator::class);
-        $mockCalculator->method('calculateCommission')
+        $this->mockCalculator->method('calculateCommission')
             ->willReturnOnConsecutiveCalls('0.05', '0.10', '0.15');
 
         $transactions = [
@@ -26,17 +40,14 @@ class TransactionProcessorTest extends TestCase
             new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
         ];
 
-        $mockDataProvider = $this->createMock(FileDataProvider::class);
-        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+        $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
             foreach ($transactions as $transaction) {
                 yield $transaction;
             }
         })());
 
-        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
-
         ob_start();
-        $processor->run();
+        $this->processor->run();
         $output = ob_get_clean();
 
         $expectedOutput = implode("\n", array_map(function ($value) {
@@ -48,8 +59,7 @@ class TransactionProcessorTest extends TestCase
 
     public function testErrorHandlingInProcessing(): void
     {
-        $mockCalculator = $this->createMock(CommissionCalculator::class);
-        $mockCalculator->method('calculateCommission')
+        $this->mockCalculator->method('calculateCommission')
             ->will($this->onConsecutiveCalls('0.05', $this->throwException(new Exception("Invalid data")), '0.15'));
 
         $transactions = [
@@ -58,17 +68,14 @@ class TransactionProcessorTest extends TestCase
             new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
         ];
 
-        $mockDataProvider = $this->createMock(FileDataProvider::class);
-        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+        $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
             foreach ($transactions as $transaction) {
                 yield $transaction;
             }
         })());
 
-        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
-
         ob_start();
-        $processor->run();
+        $this->processor->run();
         $output = ob_get_clean();
 
         $expectedOutput = "0.05\nError processing transaction: Invalid data\n0.15\n";
@@ -77,8 +84,7 @@ class TransactionProcessorTest extends TestCase
 
     public function testSkipsMalformedDataGracefully(): void
     {
-        $mockCalculator = $this->createMock(CommissionCalculator::class);
-        $mockCalculator->method('calculateCommission')
+        $this->mockCalculator->method('calculateCommission')
             ->willReturnCallback(function ($transaction) {
                 if ($transaction instanceof Transaction) {
                     return '0.05';
@@ -92,8 +98,7 @@ class TransactionProcessorTest extends TestCase
             new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
         ];
 
-        $mockDataProvider = $this->createMock(FileDataProvider::class);
-        $mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
+        $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
             foreach ($transactions as $transaction) {
                 if ($transaction instanceof Transaction) {
                     yield $transaction;
@@ -101,10 +106,8 @@ class TransactionProcessorTest extends TestCase
             }
         })());
 
-        $processor = new TransactionProcessor($mockCalculator, $mockDataProvider);
-
         ob_start();
-        $processor->run();
+        $this->processor->run();
         $output = ob_get_clean();
 
         $expectedOutput = "0.05\n0.05\n";

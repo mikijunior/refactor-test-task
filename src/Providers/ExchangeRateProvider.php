@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Config\Configuration;
 use App\Contracts\ExchangeRateProviderInterface;
 use App\Exceptions\ExchangeRateRetrievalException;
 use GuzzleHttp\Client;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
+use App\Exceptions\FileNotFoundException;
 use App\Processors\TransactionProcessor;
 use App\Providers\FileDataProvider;
-use App\Exceptions\FileNotFoundException;
 use App\Services\CommissionCalculator;
 
 $container = include __DIR__ . '/bootstrap.php';
