@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use App\DTO\Transaction;
+use App\Output\CommissionFormatter;
 use App\Processors\TransactionProcessor;
 use App\Providers\FileDataProvider;
 use App\Services\CommissionCalculator;
@@ -25,8 +26,13 @@ class TransactionProcessorTest extends TestCase
 
         $this->mockCalculator = $this->createMock(CommissionCalculator::class);
         $this->mockDataProvider = $this->createMock(FileDataProvider::class);
+        $commissionFormatter = new CommissionFormatter(2);
 
-        $this->processor = new TransactionProcessor($this->mockCalculator, $this->mockDataProvider);
+        $this->processor = new TransactionProcessor(
+            $this->mockCalculator,
+            $this->mockDataProvider,
+            $commissionFormatter
+        );
     }
 
     public function testProcessesMultipleTransactions(): void
@@ -35,9 +41,9 @@ class TransactionProcessorTest extends TestCase
             ->willReturnOnConsecutiveCalls('0.05', '0.10', '0.15');
 
         $transactions = [
-            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
-            new Transaction(['bin' => '234567', 'amount' => 200.0, 'currency' => 'USD']),
-            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+            new Transaction('123456', '100.0', 'EUR'),
+            new Transaction('234567', '200.0', 'USD'),
+            new Transaction('345678', '300.0', 'GBP')
         ];
 
         $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
@@ -63,9 +69,9 @@ class TransactionProcessorTest extends TestCase
             ->will($this->onConsecutiveCalls('0.05', $this->throwException(new Exception("Invalid data")), '0.15'));
 
         $transactions = [
-            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
-            new Transaction(['bin' => 'invalid', 'amount' => 200.0, 'currency' => 'USD']),
-            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+            new Transaction('123456', '100.0', 'EUR'),
+            new Transaction('invalid', '200.0', 'USD'),
+            new Transaction('345678', '300.0', 'GBP')
         ];
 
         $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {
@@ -93,9 +99,9 @@ class TransactionProcessorTest extends TestCase
             });
 
         $transactions = [
-            new Transaction(['bin' => '123456', 'amount' => 100.0, 'currency' => 'EUR']),
+            new Transaction('123456', '100.0', 'EUR'),
             [],
-            new Transaction(['bin' => '345678', 'amount' => 300.0, 'currency' => 'GBP'])
+            new Transaction('345678', '300.0', 'GBP')
         ];
 
         $this->mockDataProvider->method('getData')->willReturn((function () use ($transactions) {

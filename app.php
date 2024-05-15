@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 use App\Exceptions\FileNotFoundException;
+use App\Output\CommissionFormatter;
 use App\Processors\TransactionProcessor;
 use App\Providers\FileDataProvider;
 use App\Services\CommissionCalculator;
@@ -23,7 +24,8 @@ try {
 
     $processor = new TransactionProcessor(
         $container->get(CommissionCalculator::class),
-        $dataProvider
+        $dataProvider,
+        $container->get(CommissionFormatter::class)
     );
 
     $processor->run();

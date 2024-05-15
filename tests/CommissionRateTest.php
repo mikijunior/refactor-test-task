@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use App\Contracts\BinProviderInterface;
-use App\DTO\Transaction;
 use App\Services\CommissionRate;
 use App\Services\EuCountriesSpecification;
 use PHPUnit\Framework\TestCase;

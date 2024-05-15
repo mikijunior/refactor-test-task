@@ -16,7 +16,7 @@ class CommissionRate
      */
     private array $specifications = [];
 
-    public function __construct(BinProviderInterface $binProvider, string $defaultCommissionRate = '0.02')
+    public function __construct(BinProviderInterface $binProvider, string $defaultCommissionRate)
     {
         $this->binProvider = $binProvider;
         $this->defaultCoefficient = $defaultCommissionRate;

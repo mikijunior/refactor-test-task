@@ -5,9 +5,7 @@ namespace App\Providers;
 use App\Contracts\DataProviderInterface;
 use App\DTO\Transaction;
 use App\Exceptions\FileNotFoundException;
-use App\Exceptions\InvalidTransactionFormatException;
 use Generator;
-use JsonException;
 use RuntimeException;
 
 class FileDataProvider implements DataProviderInterface
@@ -28,18 +26,34 @@ class FileDataProvider implements DataProviderInterface
 
     public function getData(): Generator
     {
-        if (($file = fopen($this->filename, 'r')) === false) {
-            throw new RuntimeException("Unable to open file: {$this->filename}");
+        if (!file_exists($this->filename) || !is_readable($this->filename)) {
+            throw new RuntimeException("Cannot open file: {$this->filename}");
         }
 
-        while (($line = fgets($file)) !== false) {
-            try {
-                yield new Transaction(json_decode($line, true, 512, JSON_THROW_ON_ERROR));
-            } catch (JsonException $e) {
-                throw new RuntimeException("Invalid JSON format in file: {$this->filename}");
+        $handle = fopen($this->filename, 'rb');
+
+        if ($handle === false) {
+            throw new RuntimeException("Failed to open file: {$this->filename}");
+        }
+
+        try {
+            while (($line = fgets($handle)) !== false) {
+                $data = json_decode($line, true);
+                if ($this->isValidTransactionData($data)) {
+                    yield new Transaction($data['bin'], $data['amount'], $data['currency']);
+                }
             }
+        } finally {
+            fclose($handle);
         }
+    }
 
-        fclose($file);
+    private function isValidTransactionData($data): bool
+    {
+        return is_array($data) &&
+            isset($data['bin'], $data['amount'], $data['currency']) &&
+            is_string($data['bin']) &&
+            is_string($data['amount']) &&
+            is_string($data['currency']);
     }
 }

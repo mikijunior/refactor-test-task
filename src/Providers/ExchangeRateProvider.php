@@ -42,6 +42,7 @@ class ExchangeRateProvider implements ExchangeRateProviderInterface
     private function getResponseRate(ResponseInterface $response, string $currency): string
     {
         $data = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
         return (string) ($data['rates'][$currency] ?? 1.0);
     }
 }

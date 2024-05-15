@@ -4,30 +4,17 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
-use App\Exceptions\InvalidTransactionFormatException;
-
 class Transaction
 {
-    private $bin;
-    private $amount;
-    private $currency;
+    private string $bin;
+    private string $amount;
+    private string $currency;
 
-    public const REQUIRED_FIELDS = [
-        'bin',
-        'amount',
-        'currency',
-    ];
-
-    /**
-     * @throws InvalidTransactionFormatException
-     */
-    public function __construct(array $transaction)
+    public function __construct(string $bin, string $amount, string $currency)
     {
-        $this->validateTransaction($transaction);
-
-        $this->bin = $transaction['bin'];
-        $this->amount = (string)$transaction['amount'];
-        $this->currency = $transaction['currency'];
+        $this->bin = $bin;
+        $this->amount = $amount;
+        $this->currency = $currency;
     }
 
     public function getBin(): string
@@ -43,17 +30,5 @@ class Transaction
     public function getCurrency(): string
     {
         return $this->currency;
-    }
-
-    /**
-     * @throws InvalidTransactionFormatException
-     */
-    private function validateTransaction(array $transaction)
-    {
-        foreach (self::REQUIRED_FIELDS as $field) {
-            if (!array_key_exists($field, $transaction)) {
-                throw InvalidTransactionFormatException::missingFields();
-            }
-        }
     }
 }

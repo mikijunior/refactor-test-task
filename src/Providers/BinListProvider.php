@@ -34,6 +34,7 @@ class BinListProvider implements BinProviderInterface
     {
         try {
             $response = $this->client->get($this->url . $bin);
+
             return $this->getResponseCountryCode($response);
         } catch (RequestException | GuzzleException $e) {
             throw BinDataRetrievalException::retrievalError();
@@ -45,6 +46,7 @@ class BinListProvider implements BinProviderInterface
     private function getResponseCountryCode(ResponseInterface $response): string
     {
         $data = json_decode((string)$response->getBody(), false, 512, JSON_THROW_ON_ERROR);
+
         return $data->country->alpha2 ?? '';
     }
 }
