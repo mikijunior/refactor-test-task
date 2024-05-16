@@ -28,13 +28,12 @@ class CommissionCalculator
     public function calculateCommission(Transaction $transaction): string
     {
         $rate = $this->exchangeRateProvider->getRate($transaction->getCurrency());
-        $amount = $transaction->getAmount();
 
         if ($this->math->compare($rate, '0') === 0) {
             throw new RuntimeException("Exchange rate cannot be zero");
         }
 
-        $convertedAmount = $this->math->divide($amount, $rate);
+        $convertedAmount = $this->math->divide($transaction->getAmount(), $rate);
         $commissionRate = $this->commissionRate->getCommissionRate($transaction->getBin());
 
         return $this->math->multiply($convertedAmount, $commissionRate);
