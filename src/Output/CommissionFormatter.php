@@ -2,7 +2,9 @@
 
 namespace App\Output;
 
-class CommissionFormatter
+use App\Contracts\CommissionFormatterInterface;
+
+class CommissionFormatter implements CommissionFormatterInterface
 {
     private int $precision;
 

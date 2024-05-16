@@ -36,16 +36,7 @@ class CommissionCalculator
 
         $convertedAmount = $this->math->divide($amount, $rate);
         $commissionRate = $this->commissionRate->getCommissionRate($transaction->getBin());
-        $commission = $this->math->multiply($convertedAmount, $commissionRate);
 
-        return $this->math->divide(
-            (string)ceil(
-                (float)$this->math->multiply(
-                    $commission,
-                    '100'
-                )
-            ),
-            '100'
-        );
+        return $this->math->multiply($convertedAmount, $commissionRate);
     }
 }

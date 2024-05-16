@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Processors;
 
+use App\Contracts\CommissionFormatterInterface;
 use App\Contracts\DataProviderInterface;
 use App\Output\CommissionFormatter;
 use App\Services\CommissionCalculator;
@@ -13,12 +14,12 @@ class TransactionProcessor
 {
     private CommissionCalculator $calculator;
     private DataProviderInterface $dataProvider;
-    private CommissionFormatter $commissionFormatter;
+    private CommissionFormatterInterface $commissionFormatter;
 
     public function __construct(
         CommissionCalculator $calculator,
         DataProviderInterface $dataProvider,
-        CommissionFormatter $commissionFormatter
+        CommissionFormatterInterface $commissionFormatter
     ) {
         $this->calculator = $calculator;
         $this->dataProvider = $dataProvider;
